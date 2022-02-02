@@ -162,7 +162,7 @@ def activate(request, uidb64, token):
 @login_required(login_url='login')
 def dashboard(request):
 
-    order= Order.objects.filter(user=request.user, is_active=True)
+    order= Order.objects.filter(user=request.user)
         
    
 

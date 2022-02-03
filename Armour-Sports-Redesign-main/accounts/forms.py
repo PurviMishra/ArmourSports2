@@ -2,6 +2,7 @@ from django import forms
 from .models import Account
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 
+
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={
         'placeholder': 'Enter Password',
@@ -13,7 +14,8 @@ class RegistrationForm(forms.ModelForm):
 
     class Meta:
         model = Account
-        fields = ['first_name', 'last_name', 'phone_number', 'email', 'password']
+        fields = ['first_name', 'last_name',
+                  'phone_number', 'email', 'password']
 
     def clean(self):
         cleaned_data = super(RegistrationForm, self).clean()
@@ -36,7 +38,7 @@ class RegistrationForm(forms.ModelForm):
 
 
 class EditProfileForm(UserChangeForm):
-    template_name='/something/else'
+    template_name = '/something/else'
 
     class Meta:
         model = Account
@@ -44,5 +46,5 @@ class EditProfileForm(UserChangeForm):
             'email',
             'first_name',
             'last_name',
-           
+
         )

@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect
 from .forms import RegistrationForm
 from .models import Account
-
 from django.contrib import messages, auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash
+
 from django.http import HttpResponse
 
 # Verification email
@@ -21,17 +21,15 @@ from accounts.forms import (
     EditProfileForm
 )
 
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
-from django.urls import reverse
-from orders.models import Order,OrderProduct
-
-
+from django.contrib.auth.forms import PasswordChangeForm
+from orders.models import Order, OrderProduct, Payment
 
 import requests
 
 
 def register(request):
+    if request.user.is_authenticated:
+        return redirect('/accounts/')
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
@@ -69,6 +67,8 @@ def register(request):
 
 
 def login(request):
+    if request.user.is_authenticated:
+        return redirect('/accounts/')
     if request.method == 'POST':
         email = request.POST['email']
         password = request.POST['password']
@@ -161,14 +161,45 @@ def activate(request, uidb64, token):
 
 @login_required(login_url='login')
 def dashboard(request):
+    return render(request, 'accounts/dashboard.html')
 
-    order= Order.objects.filter(user=request.user)
-        
-   
 
+@login_required(login_url='login')
+def userprofile(request):
+    return render(request, 'accounts/userprofile.html')
+
+
+@login_required(login_url='login')
+def myorders(request):
+    ord = Order.objects.filter(user=request.user)
+    orders = {}
+    for i in ord:
+        orders[i] = {
+            'order': i,
+            'products': OrderProduct.objects.filter(order=i)
+        }
+    print(orders)
+    return render(request, 'accounts/myorders.html', {'orders': orders})
+
+
+@login_required(login_url='login')
+def mypayments(request):
     
+    payments = Payment.objects.filter(user=request.user)
+    return render(request, 'accounts/mypayments.html', {'payments': payments})
 
-    return render(request, 'accounts/dashboard.html',{'order_items':order})
+
+def edit_profile(request):
+    if request.method == 'POST':
+        form = EditProfileForm(request.POST, instance=request.user)
+
+        if form.is_valid():
+            form.save()
+            return redirect('dashboard')
+    else:
+        form = EditProfileForm(instance=request.user)
+        args = {'form': form}
+        return render(request, 'accounts/edit_profile.html', args)
 
 
 def forgotPassword(request):
@@ -234,19 +265,7 @@ def resetPassword(request):
         return render(request, 'accounts/resetPassword.html')
 
 
-
-def edit_profile(request):
-    if request.method == 'POST':
-        form = EditProfileForm(request.POST, instance=request.user)
-
-        if form.is_valid():
-            form.save()
-            return redirect('dashboard')
-    else:
-        form = EditProfileForm(instance=request.user)
-        args = {'form': form}
-        return render(request, 'accounts/edit_profile.html', args)
-
+@login_required(login_url='login')
 def change_password(request):
     if request.method == 'POST':
         form = PasswordChangeForm(data=request.POST, user=request.user)
@@ -262,3 +281,13 @@ def change_password(request):
 
         args = {'form': form}
         return render(request, 'accounts/change_password.html', args)
+
+
+@login_required(login_url='login')
+def order_details(request, id):
+    ord = Order.objects.get(id=id)
+    prod = OrderProduct.objects.filter(order=ord)
+    if(ord.user == request.user):
+        return render(request, 'accounts/order_details.html', {'order': ord, 'products': prod})
+    else:
+        return redirect('/accounts/')
